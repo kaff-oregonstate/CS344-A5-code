@@ -29,6 +29,7 @@ int main(int argc, char const *argv[]) {
     // printf("%d\n", 'A'); // 65
     // printf("%d\n", 'Z'); // 90
     // printf("%d\n", ' '); // 32
+    // printf("%d\n", '\n'); // ?
 
     // int an_int = 65;
     // char a_char = an_int;

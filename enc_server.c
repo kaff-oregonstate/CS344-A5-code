@@ -31,12 +31,34 @@ void setupAddressStruct(struct sockaddr_in* address,
   address->sin_addr.s_addr = INADDR_ANY;
 }
 
+char encode_char(char msg, char key) {
+    if (msg == '\n') return '\n';
+    if (msg == '\0') return '\0';
+    int msg_int;
+    int key_int;
+    if (msg == ' ') msg_int = 0;
+    else msg_int = msg - 64;
+    // printf("%c = %d\n", msg, msg_int);
+    if (key == ' ') key_int = 0;
+    else key_int = key - 64;
+    // printf("%c = %d\n", key, key_int);
+    msg_int = (msg_int + key_int) % 27;
+    if (msg_int == 0) return ' ';
+    else return msg_int + 64;
+}
+
 
 int main(int argc, char *argv[]){
-  int connectionSocket, charsRead;
-  char buffer[256];
+  int connectionSocket, charsRead, newLine;
+  char buffer_txt[256];
+  char buffer_key[256];
+  char next_char;
   struct sockaddr_in serverAddress, clientAddress;
   socklen_t sizeOfClientInfo = sizeof(clientAddress);
+
+  // set handshake messages
+  char enc_handshake_client[36] = "I am requesting encoding service.\n\0";
+  char enc_handshake_server[25] = "Proceed with encoding.\n\0";
 
   // Check usage & args
   if (argc < 2) {
@@ -76,6 +98,9 @@ int main(int argc, char *argv[]){
               // child process instructions
               // Accept a connection, blocking if one is not available until one connects
               while(1){
+
+// COPY HERE
+
                   // Accept the connection request which creates a connection socket
                   connectionSocket = accept(listenSocket,
                       (struct sockaddr *)&clientAddress,
@@ -85,25 +110,73 @@ int main(int argc, char *argv[]){
                       error("ERROR on accept");
                   }
 
-                  printf("SERVER: Connected to client running at host %d port %d\n",
-                      ntohs(clientAddress.sin_addr.s_addr),
-                      ntohs(clientAddress.sin_port));
+                  // printf("SERVER: Connected to client running at host %d port %d\n",
+                  //     ntohs(clientAddress.sin_addr.s_addr),
+                  //     ntohs(clientAddress.sin_port));
 
-                  // Get the message from the client and display it
-                  memset(buffer, '\0', 256);
+                  // Get the message from the client and check it
+                  memset(buffer_txt, '\0', sizeof(buffer_txt));
                   // Read the client's message from the socket
-                  charsRead = recv(connectionSocket, buffer, 255, 0);
-                  if (charsRead < 0){
-                      error("ERROR reading from socket");
-                  }
-                  printf("SERVER: I received this from the client: \"%s\"\n", buffer);
+                  charsRead = recv(connectionSocket, buffer_txt, sizeof(buffer_txt) - 1, 0);
+                  if (charsRead < 0) error("ERROR reading from socket 4");
 
-                  // Send a Success message back to the client
-                  charsRead = send(connectionSocket,
-                      "I am the server, and I got your message", 39, 0);
-                  if (charsRead < 0){
-                      error("ERROR writing to socket");
+                  if (strcmp(enc_handshake_client, buffer_txt) == 0) {
+                      // offer encoding service
+                      charsRead = send(connectionSocket,
+                          enc_handshake_server, sizeof(enc_handshake_server), 0);
+                      if (charsRead < 0){
+                          error("ERROR writing to socket");
+                      }
+
+// LOOP HERE: MSG THEN KEY, ENCODE, RETURN
+
+// loop to get, encode, send until data stream complete
+newLine = 0;
+while (!newLine) {
+    // Get the next message datagram from the client
+    memset(buffer_txt, '\0', sizeof(buffer_txt));
+    charsRead = recv(connectionSocket, buffer_txt, sizeof(buffer_txt) - 1, 0);
+    if (charsRead < 0) error("ERROR reading from socket 1");
+
+    charsRead = send(connectionSocket,
+        enc_handshake_server, strlen(enc_handshake_server), 0);
+    if (charsRead < 0){
+        error("ERROR writing to socket");
+    }
+
+    // Get the next key datagram from the client
+    memset(buffer_key, '\0', sizeof(buffer_key));
+    charsRead = recv(connectionSocket, buffer_key, sizeof(buffer_key) - 1, 0);
+    if (charsRead < 0) error("ERROR reading from socket 2");
+
+    // printf("%s\n", buffer_txt);
+    // printf("%s\n", buffer_key);
+
+    // alg on chars (strlen(buffer_txt))
+    for (size_t l = 0; l < strlen(buffer_txt); l++) {
+        next_char = encode_char(buffer_txt[l], buffer_key[l]);
+        if (next_char == '\n') newLine = 1;
+        buffer_txt[l] = next_char;
+    }
+
+    // send compiled, encoded msg
+    charsRead = send(connectionSocket,
+        buffer_txt, sizeof(buffer_txt) - 1, 0);
+    if (charsRead < 0) error("ERROR writing to socket");
+}
                   }
+                  else {
+                      // gtfoh
+                      // printf("bruh.\n");
+                      charsRead = send(connectionSocket,
+                          "git the foo outta he'e", 22, 0);
+                      if (charsRead < 0){
+                          error("ERROR writing to socket");
+                      }
+                  }
+
+// TO HERE
+
                   // Close the connection socket for this client
                   close(connectionSocket);
               }
@@ -116,34 +189,85 @@ int main(int argc, char *argv[]){
               if (number_of_children == 4) {
                   // Accept a connection, blocking if one is not available until one connects
                   while(1){
-                      // Accept the connection request which creates a connection socket
-                      connectionSocket = accept(listenSocket,
-                          (struct sockaddr *)&clientAddress,
-                          &sizeOfClientInfo);
 
-                      if (connectionSocket < 0){
-                          error("ERROR on accept");
-                      }
+// COPY HERE
 
-                      printf("SERVER: Connected to client running at host %d port %d\n",
-                          ntohs(clientAddress.sin_addr.s_addr),
-                          ntohs(clientAddress.sin_port));
+                // Accept the connection request which creates a connection socket
+                connectionSocket = accept(listenSocket,
+                    (struct sockaddr *)&clientAddress,
+                    &sizeOfClientInfo);
 
-                      // Get the message from the client and display it
-                      memset(buffer, '\0', 256);
-                      // Read the client's message from the socket
-                      charsRead = recv(connectionSocket, buffer, 255, 0);
-                      if (charsRead < 0){
-                          error("ERROR reading from socket");
-                      }
-                      printf("SERVER: I received this from the client: \"%s\"\n", buffer);
+                if (connectionSocket < 0){
+                    error("ERROR on accept");
+                }
 
-                      // Send a Success message back to the client
-                      charsRead = send(connectionSocket,
-                          "I am the server, and I got your message", 39, 0);
-                      if (charsRead < 0){
-                          error("ERROR writing to socket");
-                      }
+                // printf("SERVER: Connected to client running at host %d port %d\n",
+                //     ntohs(clientAddress.sin_addr.s_addr),
+                //     ntohs(clientAddress.sin_port));
+
+                // Get the message from the client and check it
+                memset(buffer_txt, '\0', sizeof(buffer_txt));
+                // Read the client's message from the socket
+                charsRead = recv(connectionSocket, buffer_txt, sizeof(buffer_txt) - 1, 0);
+                if (charsRead < 0) error("ERROR reading from socket 4");
+
+                if (strcmp(enc_handshake_client, buffer_txt) == 0) {
+                    // offer encoding service
+                    charsRead = send(connectionSocket,
+                        enc_handshake_server, sizeof(enc_handshake_server), 0);
+                    if (charsRead < 0){
+                        error("ERROR writing to socket");
+                    }
+
+// LOOP HERE: MSG THEN KEY, ENCODE, RETURN
+
+// loop to get, encode, send until data stream complete
+newLine = 0;
+while (!newLine) {
+  // Get the next message datagram from the client
+  memset(buffer_txt, '\0', sizeof(buffer_txt));
+  charsRead = recv(connectionSocket, buffer_txt, sizeof(buffer_txt) - 1, 0);
+  if (charsRead < 0) error("ERROR reading from socket 1");
+
+  charsRead = send(connectionSocket,
+      enc_handshake_server, strlen(enc_handshake_server) + 1, 0);
+  if (charsRead < 0){
+      error("ERROR writing to socket");
+  }
+
+  // Get the next key datagram from the client
+  memset(buffer_key, '\0', sizeof(buffer_key));
+  charsRead = recv(connectionSocket, buffer_key, sizeof(buffer_key) - 1, 0);
+  if (charsRead < 0) error("ERROR reading from socket 2");
+
+  // printf("%s\n", buffer_txt);
+  // printf("%s\n", buffer_key);
+
+  // alg on chars (strlen(buffer_txt))
+  for (size_t l = 0; l < strlen(buffer_txt); l++) {
+      next_char = encode_char(buffer_txt[l], buffer_key[l]);
+      if (next_char == '\n') newLine = 1;
+      buffer_txt[l] = next_char;
+  }
+
+  // send compiled, encoded msg
+  charsRead = send(connectionSocket,
+      buffer_txt, sizeof(buffer_txt) - 1, 0);
+  if (charsRead < 0) error("ERROR writing to socket");
+}
+                }
+                else {
+                    // gtfoh
+                    // printf("bruh.\n");
+                    charsRead = send(connectionSocket,
+                        "git the foo outta he'e", 22, 0);
+                    if (charsRead < 0){
+                        error("ERROR writing to socket");
+                    }
+                }
+
+// TO HERE
+
                       // Close the connection socket for this client
                       close(connectionSocket);
                   }
