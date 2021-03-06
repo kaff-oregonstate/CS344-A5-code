@@ -39,11 +39,11 @@ int main(int argc, char const *argv[]) {
     int next_char;
 
     // stackoverflow/10192903
-    struct timespec start;
-    clock_gettime(CLOCK_MONOTONIC_RAW, &start);
-    uint64_t delta_us = start.tv_sec;
+    struct timeval start;
+    gettimeofday(&start, NULL);
+    int current_time = start.tv_sec;
 
-    srand(delta_us);
+    srand(current_time);
 
     for (size_t i = 0; i < key_length; i++) {
         next_char = rand() % 27;
