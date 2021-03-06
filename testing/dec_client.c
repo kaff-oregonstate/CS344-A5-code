@@ -142,7 +142,7 @@ int main(int argc, char *argv[]) {
               if (next_char == 10) {
                   if (!badNewLine && k == strlen(buffer_txt) - 1) continue;
               }
-              error("CLIENT: bad input char");
+              error("dec_client error: input contains bad characters");
           }
 
           // send MSG
@@ -150,6 +150,7 @@ int main(int argc, char *argv[]) {
           charsWritten = send(socketFD, buffer_txt, strlen(buffer_txt), 0);
           if (charsWritten < 0) error("CLIENT: ERROR writing to socket");
 
+          // check reciept of MSG, thereby waiting and not overloading socket
           memset(buffer_txt, '\0', sizeof(buffer_txt));
           charsRead = recv(socketFD, buffer_txt, sizeof(buffer_txt) - 1, 0);
           if (charsRead < 0) error("CLIENT: ERROR reading from socket");
@@ -160,7 +161,6 @@ int main(int argc, char *argv[]) {
           if (charsWritten < 0) error("CLIENT: ERROR writing to socket");
 
           // get decoded msg
-                // *** may cause errors with '\0' at end due to recv
           charsRead = recv(socketFD, buffer_txt, sizeof(buffer_txt) - 1, 0);
           if (charsRead < 0) error("CLIENT: ERROR reading from socket");
 
@@ -177,6 +177,9 @@ int main(int argc, char *argv[]) {
           charsReadTotal = charsReadTotal + charsRead;
       }
       if (charsRead < 0) error("CLIENT: ERROR reading from plaintext");
+  }
+  else {
+      error("could not contact dec_server on port %s", argv[3]);
   }
 
   // Close the socket

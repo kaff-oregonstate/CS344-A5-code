@@ -24,27 +24,16 @@ int main(int argc, char const *argv[]) {
     }
 
     int key_length = atoi(argv[1]);
-    // printf("key_length = %d\n", key_length);
-
-    // printf("%d\n", 'A'); // 65
-    // printf("%d\n", 'Z'); // 90
-    // printf("%d\n", ' '); // 32
-    // printf("%d\n", '\n'); // ?
-
-    // int an_int = 65;
-    // char a_char = an_int;
-    // printf("%c\n", a_char);
-
     char key[key_length+2];
     int next_char;
 
-    // stackoverflow/10192903
-    struct timespec start;
-    clock_gettime(CLOCK_MONOTONIC_RAW, &start);
-    uint64_t delta_us = start.tv_sec;
+    // stackoverflow/10192903, man pages for sys/time.h
+    struct timeval start;
+    gettimeofday(&start, NULL);
+    int current_time = start.tv_sec;
+    srand(current_time);
 
-    srand(delta_us);
-
+    // generate random key
     for (size_t i = 0; i < key_length; i++) {
         next_char = rand() % 27;
         if (next_char == 0) {next_char = 32;}
@@ -52,7 +41,6 @@ int main(int argc, char const *argv[]) {
 
         key[i] = next_char;
     }
-    key[key_length] = '\n';
     key[key_length] = '\0';
 
     printf("%s\n", key);
