@@ -143,6 +143,7 @@ int main(int argc, char *argv[]) {
                   if (!badNewLine && k == strlen(buffer_txt) - 1) continue;
               }
               fprintf(stderr, "enc_client error: input contains bad characters" );
+              exit(1);
           }
 
           // send MSG
@@ -179,7 +180,7 @@ int main(int argc, char *argv[]) {
       if (charsRead < 0) error("CLIENT: ERROR reading from plaintext");
   }
   else {
-      error("could not contact enc_server on port %s", argv[3]);
+      fprintf(stderr, "Error: could not contact enc_server on port %s\n", argv[3]);
   }
 
   // Close the socket
