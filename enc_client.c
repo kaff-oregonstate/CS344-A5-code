@@ -142,7 +142,7 @@ int main(int argc, char *argv[]) {
               if (next_char == 10) {
                   if (!badNewLine && k == strlen(buffer_txt) - 1) continue;
               }
-              fprintf(stderr, "enc_client error: input contains bad characters" );
+              fprintf(stderr, "enc_client error: input contains bad characters\n" );
               exit(1);
           }
 
